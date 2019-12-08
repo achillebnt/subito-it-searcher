@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 import json
 import os.path
 import telegram_send
+import re
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--name", "--add", dest='name', help="name of new tracking to be added")
@@ -64,21 +65,21 @@ def run_query(url, name):
     soup = BeautifulSoup(page.text, 'html.parser')
 
         
-    product_list_items = soup.find('div', class_='jsx-4054856553 items visible').find_all('a')
+    product_list_items = soup.find('div', class_='jsx-3849450822 items visible').find_all('a')
     msg = []
 
     for product in product_list_items:
-        title = product.find('div', class_='AdElements__Item--title-L2hvbWUv').find('h2').contents[0]
+        title = product.find('h2', class_=re.compile('item-title')).contents[0]
                 
-        if(product.find('div', class_='AdElements__ItemPrice--container-L2hvbWUv') is not None):
-            tmp = product.find('div', class_='AdElements__ItemPrice--container-L2hvbWUv').contents
+        if(product.find('h6', class_=re.compile('AdElements__ItemPrice--price')) is not None):
+            tmp = product.find('h6', class_=re.compile('AdElements__ItemPrice--price')).contents
             price = ''.join(tmp)
 
         else:
             price = "Unknown price"
         link = product.get('href')
 
-        location = product.find('div', class_='AdElements__Item--dateLocation-L2hvbWUv').find('span').contents[2]
+        location = product.find('span', class_=re.compile('AdElements__ItemDateLocation--town')).contents[0]
 
 
         if not queries.get(name):   # insert the new search
@@ -92,7 +93,7 @@ def run_query(url, name):
                 queries[name][url][link] = {'title': title, 'price': price, 'location': location}
 
     if len(msg) > 0:
-        telegram_send.send(messages=msg)
+        #telegram_send.send(messages=msg)
         print("\n".join(msg))
         save(dbFile)
     # print("queries file saved: ", queries)
